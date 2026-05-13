@@ -2,7 +2,7 @@ import logging
 import re
 
 from tools import ALL_TOOLS
-from prompts import SYSTEM_PROMPT, TEST_PROMPT
+from prompts import SYSTEM_PROMPT, TEST_PROMPT, TEST_PROMPT2
 
 from anthropic import Anthropic
 
@@ -25,6 +25,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 _SCRATCH_RE = re.compile(
     r"<scratch>.*?(?:</scratch>|$)\s*", re.DOTALL | re.IGNORECASE
 )
+
+
+def _log_readable_section(title: str, body: str) -> None:
+    """Write a bordered multi-line block to the log file for easy scanning."""
+    bar = "=" * 72
+    logging.info("\n%s\n%s\n%s\n%s\n%s", bar, title, bar, body, bar)
 
 
 class AIAgent:
@@ -55,7 +61,7 @@ class AIAgent:
             response = self.client.messages.create(
                 model=MODEL_NAME,
                 max_tokens=MAX_TOKENS,
-                system=TEST_PROMPT,
+                system=SYSTEM_PROMPT,
                 messages=self.messages,
                 tools=self.tool_definitions,
             )
@@ -97,4 +103,6 @@ class AIAgent:
             # <scratch>...</scratch> reasoning sections removed.
             text_parts = [b.text for b in response.content if b.type == "text"]
             reply = "\n".join(text_parts)
-            return _SCRATCH_RE.sub("", reply).strip()
+            reply = _SCRATCH_RE.sub("", reply).strip()
+            _log_readable_section("AGENT RESPONSE", reply)
+            return reply

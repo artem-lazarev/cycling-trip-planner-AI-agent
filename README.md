@@ -61,9 +61,11 @@ The agent discovers tools through `ALL_TOOLS` in `src/tools/__init__.py`. Adding
 
 ## What I'd build with more time
 
-- **Real APIs**: OpenRouteService for routing/elevation, Open-Meteo for weather, OSM/Overpass for accommodation and POIs.
+- **Real APIs**: Apple WeatherKit for weather, GraphHopper for routing, PJAMM for climb data, Google Maps for places. 
 - **The three bonus tools**: `get_points_of_interest`, `check_visa_requirements`, `estimate_budget` — each fits the same `DEFINITION`/`execute` pattern.
-- **Persistent session storage**: Redis (or even SQLite) instead of the in-process dict, so sessions survive restarts and scale beyond one process.
-- **Streaming responses**: stream the model's output via Server-Sent Events so the user sees the plan being built instead of waiting for the full turn.
+- **System Prompt**: Keep evolving the system prompt.
+- **Persistent session storage**: SQLite instead of the in-process dict, so sessions survive restarts and scale beyond one process.
+- **Streaming responses**: stream the model's output so the user sees the plan being built instead of waiting for the full turn.
 - **Structured itinerary output**: alongside the prose reply, return a typed Pydantic `Itinerary` object (days, distances, accommodation, weather) so a frontend can render the plan as a real UI rather than parsing text.
+- **Frontend**: Deploy the app with a frontend (Vercel + Render.com)
 - **Eval harness**: a small set of scripted conversations to regression-test tool selection and multi-step reasoning when prompts or models change.
