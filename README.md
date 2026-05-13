@@ -18,8 +18,10 @@ Add your `ANTHROPIC_API_KEY` to `.env`.
 ## Run
 
 ```bash
-PYTHONPATH=src:src/agent uvicorn api.main:app --reload
+PYTHONPATH=src:src/agent python -m uvicorn api.main:app --reload
 ```
+
+> Use `python -m uvicorn` (not bare `uvicorn`). If you have Homebrew's `uvicorn` installed, the bare command resolves to that binary, which runs its own bundled Python and won't see the packages installed in your venv — you'll get `ModuleNotFoundError: No module named 'fastapi'`. Running it via `python -m` forces the venv's interpreter.
 
 Then send a request to `http://localhost:8000/chat`:
 
@@ -40,7 +42,7 @@ curl -X POST http://localhost:8000/chat \
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest tests/
+PYTHONPATH=src python -m pytest tests/
 ```
 
 ## Architecture decisions
