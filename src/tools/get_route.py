@@ -1,3 +1,12 @@
+from pydantic import BaseModel, Field, ValidationError
+
+
+class GetRouteInput(BaseModel):
+    start: str = Field(min_length=1)
+    end: str = Field(min_length=1)
+    daily_distance_km: float = Field(default=80, gt=0)
+
+
 DEFINITION = {
     "name": "get_route",
     "description": (
@@ -80,9 +89,15 @@ def known_cities():
 
 
 def execute(tool_input):
-    start = tool_input.get("start", "").strip()
-    end = tool_input.get("end", "").strip()
-    daily = float(tool_input.get("daily_distance_km") or 80)
+    try:
+        data = GetRouteInput.model_validate(tool_input)
+    except ValidationError as e:
+        err = e.errors()[0]
+        return f"Invalid input for get_route: {err['msg']} (field: {err['loc'][0]})"
+
+    start = data.start.strip()
+    end = data.end.strip()
+    daily = data.daily_distance_km
 
     segments = _lookup(start.lower(), end.lower())
 

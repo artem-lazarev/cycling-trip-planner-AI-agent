@@ -1,3 +1,11 @@
+from pydantic import BaseModel, Field, ValidationError
+
+
+class GetWeatherInput(BaseModel):
+    location: str = Field(min_length=1)
+    month: str = Field(min_length=1)
+
+
 DEFINITION = {
     "name": "get_weather",
     "description": (
@@ -35,8 +43,14 @@ _WEATHER = {
 
 
 def execute(tool_input):
-    location = tool_input.get("location", "").strip()
-    month = tool_input.get("month", "").strip()
+    try:
+        data = GetWeatherInput.model_validate(tool_input)
+    except ValidationError as e:
+        err = e.errors()[0]
+        return f"Invalid input for get_weather: {err['msg']} (field: {err['loc'][0]})"
+
+    location = data.location.strip()
+    month = data.month.strip()
     key = (location.lower(), month.lower())
 
     if key in _WEATHER:

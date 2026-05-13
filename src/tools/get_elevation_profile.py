@@ -1,3 +1,11 @@
+from pydantic import BaseModel, Field, ValidationError
+
+
+class GetElevationInput(BaseModel):
+    start: str = Field(min_length=1)
+    end: str = Field(min_length=1)
+
+
 DEFINITION = {
     "name": "get_elevation_profile",
     "description": (
@@ -65,8 +73,14 @@ def _rating(gain):
 
 
 def execute(tool_input):
-    start = tool_input.get("start", "").strip()
-    end = tool_input.get("end", "").strip()
+    try:
+        data = GetElevationInput.model_validate(tool_input)
+    except ValidationError as e:
+        err = e.errors()[0]
+        return f"Invalid input for get_elevation_profile: {err['msg']} (field: {err['loc'][0]})"
+
+    start = data.start.strip()
+    end = data.end.strip()
     key = _seg(start.lower(), end.lower())
 
     if key in _SEGMENTS:

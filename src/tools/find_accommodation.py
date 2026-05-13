@@ -1,4 +1,15 @@
+from typing import Literal
+
+from pydantic import BaseModel, Field, ValidationError
+
 from . import get_route
+
+
+class FindAccommodationInput(BaseModel):
+    location: str = Field(min_length=1)
+    accommodation_type: Literal["camping", "hostel", "hotel"]
+    count: int = Field(default=2, ge=1, le=3)
+
 
 DEFINITION = {
     "name": "find_accommodation",
@@ -49,14 +60,15 @@ _NAME_PATTERNS = {
 
 
 def execute(tool_input):
-    location = tool_input.get("location", "").strip()
-    acc_type = tool_input.get("accommodation_type", "").strip().lower()
-    raw_count = tool_input.get("count")
-    count = 2 if raw_count is None else int(raw_count)
-    count = max(1, min(count, 3))
+    try:
+        data = FindAccommodationInput.model_validate(tool_input)
+    except ValidationError as e:
+        err = e.errors()[0]
+        return f"Invalid input for find_accommodation: {err['msg']} (field: {err['loc'][0]})"
 
-    if acc_type not in _PRICE:
-        return f"Unknown accommodation type '{acc_type}'. Use camping, hostel, or hotel."
+    location = data.location.strip()
+    acc_type = data.accommodation_type
+    count = data.count
 
     if location.lower() not in get_route.known_cities():
         # Don't fabricate listings for unverified towns. Force the agent to
