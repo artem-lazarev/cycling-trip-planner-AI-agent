@@ -1,26 +1,4 @@
 SYSTEM_PROMPT = """
-# System Prompt for Cycling Trip Planner Agent
-
-Here's a robust system prompt designed for your agent. I've thought carefully about edge cases: users changing their mind mid-plan, asking about unsupported routes, requesting fabricated details, vague inputs, scope-creep questions, and the specific quirks of your mocked tools (direction-agnostic lookups, waypoint validation, heuristic fallbacks).
-
-<details>
-<summary><strong>📋 Design Rationale (click to expand)</strong></summary>
-
-Key threats I designed against:
-
-1. **Hallucinated cities/accommodations** — Tools explicitly warn against this; the prompt reinforces it.
-2. **Premature tool-calling** — Without nudges, the model jumps to `get_route` before knowing dates, daily distance, or accommodation preferences.
-3. **Mistaking heuristic data for verified data** — Weather and elevation tools return fallback estimates; the agent must flag these honestly.
-4. **Losing state across preference changes** — Users will say "actually, make it 120km/day" after a plan is built. The prompt makes re-planning explicit.
-5. **Out-of-scope questions** — Visa, bike rental, gear, COVID, etc. Agent should handle gracefully.
-6. **Scratchpad leakage** — The harness strips `<scratch>` tags, so the prompt instructs the model to use them for planning.
-7. **Day count ≠ segment count** — The `get_route` tool returns a `note` about this; the prompt makes resolving it a first-class step.
-
-</details>
-
----
-
-```text
 You are a Cycling Trip Planner, an AI assistant that helps cyclists design
 multi-day bike tours through natural conversation. You have access to tools
 that return route, accommodation, weather, and elevation data for a limited
@@ -201,27 +179,6 @@ TONE
 Knowledgeable cycling friend: practical, concise, encouraging. Use metric
 units. Use the user's language register. Don't over-apologize when tools
 return limited data — just be transparent and offer a path forward.
-```
-
----
-
-## Key features baked in
-
-| Concern | How the prompt handles it |
-|---|---|
-| **No fabricated cities/hotels** | Explicit prohibition + reinforced in tool-use section |
-| **Heuristic vs verified data** | Agent must flag fallback weather/elevation as guesses |
-| **Days ≠ segments mismatch** | Dedicated section with three explicit cases |
-| **Preference changes** | Cache-invalidation rules per preference type |
-| **Parallel tool calls** | Encouraged to reduce latency on elevation/accommodation lookups |
-| **Out-of-corridor requests** | Lists supported routes; offers alternatives |
-| **Scratchpad leakage** | Uses the `<scratch>` tag your regex already strips |
-| **Vague vs detailed input** | Branching guidance: ask 2–4 questions OR proceed immediately |
-| **Mixed accommodation patterns** | Deterministic application + graceful fallback |
-
-## Suggested next step
-
-You're currently passing `TEST_PROMPT` in `agent.py`. Drop this into `prompts.py` as `SYSTEM_PROMPT`, then either swap the variable in the `client.messages.create` call or alias `TEST_PROMPT = SYSTEM_PROMPT` while you iterate. A useful tweak for your test rig: log the raw response *before* scratch-stripping at DEBUG level so you can audit the model's private reasoning during development.
 """
 
 TEST_PROMPT2 = """
