@@ -9,8 +9,12 @@ MODEL_NAME = "claude-sonnet-4-6"
 MAX_TOKENS = 4096
 
 # Strip <scratch>...</scratch> blocks (the model uses these for private
-# reasoning per the system prompt). DOTALL so it spans newlines.
-_SCRATCH_RE = re.compile(r"<scratch>.*?</scratch>\s*", re.DOTALL | re.IGNORECASE)
+# reasoning per the system prompt). The `(?:</scratch>|$)` branch handles
+# unclosed tags (e.g. when output is truncated at MAX_TOKENS) so trailing
+# reasoning doesn't leak to the user.
+_SCRATCH_RE = re.compile(
+    r"<scratch>.*?(?:</scratch>|$)\s*", re.DOTALL | re.IGNORECASE
+)
 
 
 class AIAgent:

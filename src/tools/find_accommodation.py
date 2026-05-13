@@ -1,16 +1,19 @@
+from . import get_route
+
 DEFINITION = {
     "name": "find_accommodation",
     "description": (
-        "Find places to stay near a given location. Supports camping, hostel, "
-        "or hotel. Returns a short list of mock listings with name and "
-        "approximate price per night."
+        "Find places to stay near a given waypoint city. Supports camping, "
+        "hostel, or hotel. Returns a short list of mock listings with name "
+        "and approximate price per night. Only verified waypoint cities are "
+        "accepted — querying an unverified town returns an error."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
             "location": {
                 "type": "string",
-                "description": "City or town to search near, e.g. 'Hamburg'",
+                "description": "Waypoint city to search near, e.g. 'Hamburg'",
             },
             "accommodation_type": {
                 "type": "string",
@@ -19,7 +22,10 @@ DEFINITION = {
             },
             "count": {
                 "type": "integer",
-                "description": "How many listings to return. Defaults to 2.",
+                "description": "How many listings to return.",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 2,
             },
         },
         "required": ["location", "accommodation_type"],
@@ -45,11 +51,21 @@ _NAME_PATTERNS = {
 def execute(tool_input):
     location = tool_input.get("location", "").strip()
     acc_type = tool_input.get("accommodation_type", "").strip().lower()
-    count = int(tool_input.get("count") or 2)
+    raw_count = tool_input.get("count")
+    count = 2 if raw_count is None else int(raw_count)
     count = max(1, min(count, 3))
 
     if acc_type not in _PRICE:
         return f"Unknown accommodation type '{acc_type}'. Use camping, hostel, or hotel."
+
+    if location.lower() not in get_route.known_cities():
+        # Don't fabricate listings for unverified towns. Force the agent to
+        # pick a named waypoint instead of inventing "rural Schleswig" etc.
+        return (
+            f"No verified listings for '{location}' — it isn't a known waypoint. "
+            "Pick a named waypoint city (use get_route to see valid options) "
+            "and do NOT present invented accommodation names to the user."
+        )
 
     low, high = _PRICE[acc_type]
     patterns = _NAME_PATTERNS[acc_type]

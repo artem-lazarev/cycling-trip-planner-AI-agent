@@ -43,6 +43,8 @@ def execute(tool_input):
         return f"{month} in {location}: {_WEATHER[key]}."
 
     return (
-        f"{month} in {location}: typical temperate-Europe summer — "
-        "avg ~16°C, frequent light rain (~10 days), mild westerly winds."
+        f"No specific data for {location} in {month}. "
+        "Generic temperate-Europe summer estimate: avg ~16°C, frequent light "
+        "rain (~10 days), mild westerly winds. Present this to the user as a "
+        "rough regional guess, not location-specific data."
     )
