@@ -1,12 +1,22 @@
+import logging
 import re
 
 from tools import ALL_TOOLS
-from prompts import SYSTEM_PROMPT
+from prompts import SYSTEM_PROMPT, TEST_PROMPT
 
 from anthropic import Anthropic
 
 MODEL_NAME = "claude-sonnet-4-6"
 MAX_TOKENS = 4096
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[logging.FileHandler("agent.log")],
+)
+
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Strip <scratch>...</scratch> blocks (the model uses these for private
 # reasoning per the system prompt). The `(?:</scratch>|$)` branch handles
@@ -24,12 +34,18 @@ class AIAgent:
         self.tool_definitions = [tool.DEFINITION for tool in ALL_TOOLS]
 
     def _execute_tool(self, tool_name, tool_input):
-        for tool in ALL_TOOLS:
-            if tool.DEFINITION["name"] == tool_name:
-                return tool.execute(tool_input)
-        return f"Unknown tool: {tool_name}"
+        logging.info(f"Executing tool: {tool_name} with input: {tool_input}")
+        try:
+            for tool in ALL_TOOLS:
+                if tool.DEFINITION["name"] == tool_name:
+                    return tool.execute(tool_input)
+            return f"Unknown tool: {tool_name}"
+        except Exception as e:
+            logging.error(f"Error executing {tool_name}: {str(e)}")
+            return f"Error executing {tool_name}: {str(e)}"
 
     def chat(self, user_input):
+        logging.info(f"User input: {user_input}")
         self.messages.append({"role": "user", "content": user_input})
 
         # Tool-calling loop: Claude may want to call tools across multiple turns
@@ -39,7 +55,7 @@ class AIAgent:
             response = self.client.messages.create(
                 model=MODEL_NAME,
                 max_tokens=MAX_TOKENS,
-                system=SYSTEM_PROMPT,
+                system=TEST_PROMPT,
                 messages=self.messages,
                 tools=self.tool_definitions,
             )
@@ -65,6 +81,7 @@ class AIAgent:
             for block in response.content:
                 if block.type == "tool_use":
                     result = self._execute_tool(block.name, block.input)
+                    logging.info(f"Tool result: {str(result)[:500]}...")
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
