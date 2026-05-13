@@ -1,0 +1,31 @@
+
+=== 01-happy-path-no-narration ===
+Traceback (most recent call last):
+  File "/Users/artemlazarev/Music/affinity-labs-case-study-task/stress_test_reverify.py", line 204, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/artemlazarev/Music/affinity-labs-case-study-task/stress_test_reverify.py", line 126, in main
+    reply = run("01-happy-path-no-narration",
+                ["I want to cycle from Amsterdam to Copenhagen. I can do around 100km a day, "
+                 "prefer camping but want a hostel every 4th night. Traveling in June."])
+  File "/Users/artemlazarev/Music/affinity-labs-case-study-task/stress_test_reverify.py", line 115, in run
+    data = post_chat(user, session_id=session)
+  File "/Users/artemlazarev/Music/affinity-labs-case-study-task/stress_test_reverify.py", line 28, in post_chat
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+    response = meth(req, response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 500: Internal Server Error

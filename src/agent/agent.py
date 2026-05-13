@@ -1,3 +1,5 @@
+import re
+
 from tools import ALL_TOOLS
 from prompts import SYSTEM_PROMPT
 
@@ -5,6 +7,10 @@ from anthropic import Anthropic
 
 MODEL_NAME = "claude-sonnet-4-6"
 MAX_TOKENS = 4096
+
+# Strip <scratch>...</scratch> blocks (the model uses these for private
+# reasoning per the system prompt). DOTALL so it spans newlines.
+_SCRATCH_RE = re.compile(r"<scratch>.*?</scratch>\s*", re.DOTALL | re.IGNORECASE)
 
 
 class AIAgent:
@@ -66,6 +72,8 @@ class AIAgent:
                 continue
 
             # No more tool calls -> this is the final assistant turn. Return all
-            # text blocks concatenated (there can be more than one).
+            # text blocks concatenated (there can be more than one), with any
+            # <scratch>...</scratch> reasoning sections removed.
             text_parts = [b.text for b in response.content if b.type == "text"]
-            return "\n".join(text_parts).strip()
+            reply = "\n".join(text_parts)
+            return _SCRATCH_RE.sub("", reply).strip()

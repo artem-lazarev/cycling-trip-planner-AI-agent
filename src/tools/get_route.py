@@ -57,13 +57,18 @@ def execute(tool_input):
     route = _ROUTES.get(key)
 
     if route is None:
-        # Generic fallback: invent a plausible distance and a sparse waypoint list.
-        distance = 600
-        waypoints = [start, "midpoint town", end]
-    else:
-        distance = route["distance_km"]
-        waypoints = route["waypoints"]
+        # Route not in our mock database. Tell the agent explicitly so it
+        # doesn't fabricate plausible-sounding waypoint cities.
+        return (
+            f"Route {start} -> {end}: not in our database. "
+            "No verified distance or waypoint data available. "
+            "Tell the user the route isn't well-known and either ask them "
+            "to name intermediate cities, or proceed with anonymous day "
+            "labels ('Day 1 leg', 'Day 2 leg') — do NOT invent city names."
+        )
 
+    distance = route["distance_km"]
+    waypoints = route["waypoints"]
     days = max(1, round(distance / daily))
     return (
         f"Route {start} -> {end}: ~{distance} km, "
