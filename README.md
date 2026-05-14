@@ -47,25 +47,33 @@ PYTHONPATH=src python -m pytest tests/
 
 ## Architecture decisions
 
-**Tool loop.** `AIAgent.chat` loops: send messages → mirror the assistant response into history → execute any `tool_use` blocks → append the `tool_result`s as a user-role message → repeat until the model returns text with no tool calls. Lets the model chain steps (route → elevation → weather → accommodation) instead of firing everything at once.
+- **Deliberately minimal codebase** — An AI agent is just an LLM running in a loop with access to tools, stopping when it decides it's done. That's it. I kept the implementation as small and the code as verbose as I could so that this idea is conveyed.
+- **No frameworks, no orchestrators, no graphs** — just the loop
+- **Verbose by design** — every step explicit, nothing hidden in abstractions
 
-**Tool pattern.** One module per tool in `src/tools/`. Each exports `DEFINITION` (the Anthropic schema) and `execute(input) -> str`. The agent picks them up from `ALL_TOOLS` in `src/tools/__init__.py`. Adding a tool: write the module, append to the list. No decorators, no registry.
+---
 
-**Input validation.** Every tool validates its input with a Pydantic model before running. Bad input returns a readable error string to the model rather than throwing — the model can read the error and retry with the right shape.
+**Tool-calling loop.** `AIAgent.chat` (in `src/agent/agent.py`) is where the whole thing lives. It sends messages to Claude, mirrors the response into the conversation history, runs any requested tool calls, feeds results back, and repeats — until Claude returns a plain text reply with no more tool calls. That's the complete agent. The loop is what lets the model chain steps (route → elevation → weather → accommodation → itinerary) instead of firing everything at once.
 
-**Mock data.** Hardcoded routes, elevations, weather, and accommodation for four European corridors (Amsterdam↔Copenhagen, Amsterdam↔Berlin, Paris↔Amsterdam, London↔Paris). Unknown routes and unverified towns return an explicit "no data" message so the model doesn't fabricate cities. Architecture is what's being tested, not API plumbing.
+**Tool pattern.** Each tool is its own module under `src/tools/` and exports two things:
+- `DEFINITION` — the Anthropic tool-use schema (name, description, input_schema)
+- `execute(tool_input) -> str` — runs the tool and returns a plain string
 
-**Session storage.** In-process `dict[session_id, AIAgent]`. Each `AIAgent` instance owns its own message history (including `tool_use` and `tool_result` blocks), so mid-conversation preference changes ("actually make it 80km/day") update only the affected parts instead of re-planning from scratch. Server generates a `session_id` if the client doesn't send one. Redis or a DB would replace this in prod.
+The agent discovers tools through `ALL_TOOLS` in `src/tools/__init__.py`. Adding a new tool is two steps: drop a file in `src/tools/`, append it to `ALL_TOOLS`. No registration glue, no decorators. Inputs are validated with a Pydantic model at the top of `execute`; bad input returns a readable error string to the model rather than throwing.
 
-**Scratchpad.** The system prompt tells the model to reason inside `<scratch>...</scratch>` tags. The agent strips those (including unclosed tags from `max_tokens` truncation) before returning. Gives the model room to plan tool order and reconcile day-vs-segment counts without leaking it to the user.
+**Session storage.** Sessions are a plain `dict` mapping `session_id` to an `AIAgent` instance. The message history lives directly on the instance as `self.messages` — there's no separate state store. The server auto-generates a `session_id` if the client doesn't supply one. Fine for a case study — a real deployment would swap this for SQLite or Redis.
 
-**System prompt.** Short and prescriptive (`src/agent/prompts.py`): when to ask vs. just plan, which tools to batch in parallel, how to reconcile day count vs. segment count, how to react to preference changes, what to say when a tool returns no data.
+**Conversation state.** Because history is stored on the instance itself, the agent always has full context and can adapt mid-conversation when the user changes preferences ("actually make it 80km/day").
+
+**System prompt.** Lives in `src/agent/prompts.py`. Short and prescriptive: ask before assuming, call tools step by step, present a day-by-day itinerary, adapt when preferences change. It also tells the model to reason inside `<scratch>...</scratch>` tags, which the agent strips before returning the reply.
+
+**Mock data.** Tools return hardcoded mock data for a handful of well-known European cycling corridors, with sensible fallbacks for anything else. The architecture is what's being tested here, not API integration.
 
 ## What I'd build with more time
 
 - **Real APIs**: Apple WeatherKit for weather, GraphHopper for routing, PJAMM for climb data, Google Maps for places. 
-- **The three bonus tools**: `get_points_of_interest`, `check_visa_requirements`, `estimate_budget` — each fits the same `DEFINITION`/`execute` pattern.
 - **System Prompt**: Keep evolving the system prompt.
+- **More tools**: `get_points_of_interest`, `check_visa_requirements`, `estimate_budget` — each fits the same `DEFINITION`/`execute` pattern.
 - **Persistent session storage**: SQLite instead of the in-process dict, so sessions survive restarts and scale beyond one process.
 - **Streaming responses**: stream the model's output so the user sees the plan being built instead of waiting for the full turn.
 - **Structured itinerary output**: alongside the prose reply, return a typed Pydantic `Itinerary` object (days, distances, accommodation, weather) so a frontend can render the plan as a real UI rather than parsing text.
