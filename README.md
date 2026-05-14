@@ -53,7 +53,11 @@ PYTHONPATH=src python -m pytest tests/
 
 ---
 
-**Tool-calling loop.** `AIAgent.chat` (in `src/agent/agent.py`) is where the whole thing lives. It sends messages to Claude, mirrors the response into the conversation history, runs any requested tool calls, feeds results back, and repeats — until Claude returns a plain text reply with no more tool calls. That's the complete agent. The loop is what lets the model chain steps (route → elevation → weather → accommodation → itinerary) instead of firing everything at once.
+**Tool-calling loop.** `AIAgent.chat` (in `src/agent/agent.py`) is where the whole thing lives. It sends messages to Claude, mirrors the response into the conversation history, runs any requested tool calls, feeds results back, and repeats — until Claude returns a plain text reply with no more tool calls. That's the complete agent.
+
+**Batching within a turn.** A single Claude response can carry many `tool_use` blocks. The system prompt tells the model to batch independent calls — elevation for every segment, accommodation for every stop — into one turn, and to start a new turn only when later tools depend on earlier results (e.g. `find_accommodation` needs waypoints from `get_route`). LLM round-trips dominate latency, so fewer turns matter; tool execution itself doesn't.
+
+**Sequential tool execution.** The runner executes a turn's `tool_use` blocks one at a time in a `for` loop (`agent.py:87-95`). Fine here — every tool is a dict lookup. If any tool became real I/O, this is where `asyncio.gather` would go.
 
 **Tool pattern.** Each tool is its own module under `src/tools/` and exports two things:
 - `DEFINITION` — the Anthropic tool-use schema (name, description, input_schema)
